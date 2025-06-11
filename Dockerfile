@@ -15,7 +15,7 @@ RUN mkdir -p /mcr-install \
   && ./install -destinationFolder /opt/mcr -agreeToLicense yes -mode silent \
   && cd / \
   && rm -rf mcr-install \
-  && test -e /usr/bin/ldd && ldd --version | grep -q '(Debian GLIBC 2.36-9+deb12u9)' 
+  && test -e /usr/bin/ldd
 ## Set the current directory to /challenge
 RUN mkdir /challenge
 COPY . /challenge
