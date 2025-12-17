@@ -1,49 +1,39 @@
 function features=get_features(file,header)
 
-signals=read_challenge_signals(file,header);
+signals = read_challenge_signals(file, header);
+ecg = signals(:,2);
+ecg = ecg(~isnan(ecg));
 
-features(1)=nanmean(signals(:,2));
-features(2)=nanstd(signals(:,2));
-features(3)=get_age(header);
-features(4)=get_sex(header);
-
-function age=get_age(header)
-
-header=strsplit(header,'\n');
-age_tmp=header(startsWith(header,'# Age:'));
-age_tmp=strsplit(age_tmp{1},':');
-age=str2double(age_tmp{2});
-
-function sex=get_sex(header)
-
-header=strsplit(header,'\n');
-sex_tmp=header(startsWith(header,'# Sex:'));
-sex_tmp=strsplit(sex_tmp{1},':');
-if startsWith(sex_tmp{2},'Fem')
-    sex=0;
-elseif startsWith(sex_tmp{2},'Mal')
-    sex=1;
-else
-    sex=2;
+% Segurança
+if length(ecg) < 100
+    features = nan(1,6);
+    return
 end
 
-function signals=scale_signals(signals,header)
+% 1. Variabilidade
+f_var = std(ecg);
 
-header=strsplit(header,'\n');
+% 2. Diferença sucessiva (instabilidade)
+f_diff = mean(abs(diff(ecg)));
 
-for j=1:size(signals,2)
+% 3. Entropia espectral (caos vs coerência)
+[pxx,~] = pwelch(ecg);
+pxx = pxx / sum(pxx);
+f_entropy = -nansum(pxx .* log(pxx + eps));
 
-    header_tmp=header{1+j};
-    header_tmp=strsplit(header_tmp,' ');
-    header_tmp=header_tmp{contains(header_tmp,'/mV')};
+% 4. Kurtosis (picos patológicos)
+f_kurt = kurtosis(ecg);
 
-    baseline=extractBetween(header_tmp,'(',')');
-    baseline=str2num(baseline{1});
+% 5–6. Demografia
+f_age = get_age(header);
+f_sex = get_sex(header);
 
-    gain=extractBefore(header_tmp,'(');
-    gain=str2num(gain);
-
-    signals(:,j)=(signals(:,j)-baseline)/gain;
-
-
-end
+% Vetor final de features (IDCF implícito)
+features = [
+    f_var,...
+    f_diff,...
+    f_entropy,...
+    f_kurt,...
+    f_age,...
+    f_sex
+];
