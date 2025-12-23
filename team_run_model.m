@@ -1,18 +1,19 @@
-function [binary_output,probability_output]=team_run_model(data_record, classification_model, verbose)
+function [binary_output, probability_output] = team_run_model(data_record, classification_model, verbose)
 
-classification_model=classification_model.classification_model;
-header=fileread(data_record);
+signals = read_challenge_signals(data_record);
+header  = fileread(strrep(data_record, '.mat', '.hea'));
 
-% Classification model
-features=get_features(data_record,header);
-[predicted_class,probabilities]=classification_model.predict(features);
+features = get_features(data_record, header);
 
-if str2double(predicted_class)==0
-    binary_output='False';
+IDCF = compute_idcf(features);
+IDCF = max(0, min(1, IDCF));   % segurança numérica
+
+probability_output = IDCF;
+
+if IDCF < 0.5
+    binary_output = 'True';    % patológico / colapso
 else
-    binary_output='True';
+    binary_output = 'False';   % regime coerente
 end
-
-probability_output=probabilities(2);
 
 end
